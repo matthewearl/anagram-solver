@@ -3,19 +3,19 @@
 import collections
 import re
 
-class _Node(object):
+class _VectorSet(object):
     """
-    A node represents a set of numeric tuples (vectors).
+    A vector set represents a set of numeric tuples (vectors).
 
-    A tree-structure is used where each node has one child for each possible
-    first (head) value in the set. Each child is itself a node representing the
-    set of tails with the given head. The empty tuple is present if the
-    `present` attribute is set.
+    A tree-structure is used where each vector set has one child for each
+    possible first (head) value in the set. Each child is itself a vector set
+    representing the set of tails with the given head. The empty tuple is
+    present if the `present` attribute is set.
 
     """
     def __init__(self):
         self.present = False
-        self.children = collections.defaultdict(_Node)
+        self.children = collections.defaultdict(_VectorSet)
 
     def _add_vec(self, vec):
         if len(vec) > 0:
@@ -41,7 +41,7 @@ class _Node(object):
         else:
             for val, child in self.children.items():
                 if (val <= query_vec[0] and
-                                          (min_vec == () or val >= min_vec[0]):
+                                         (min_vec == () or val >= min_vec[0])):
                     if min_vec == () or val > min_vec[0]:
                         child_min_vec = ()
                     else:
@@ -79,7 +79,7 @@ def _make_tree(word_list="/usr/share/dict/words"):
     vec_dict = collections.defaultdict(list)
     for word in _load_words(word_list):
         vec_dict[_make_vec(word)].append(word)
-    tree = _Node()
+    tree = _VectorSet()
     for vec in vec_dict.keys():
         tree._add_vec(vec)
     return tree, vec_dict
@@ -89,7 +89,7 @@ def _vec_sub(v1, v2):
     assert len(v1) == len(v2)
     return tuple(a - b for a, b in zip(v1, v2))
 
-def _find_anagram_vecs(tree, query_vec, min_vec=())
+def _find_anagram_vecs(tree, query_vec, min_vec=()):
     """
     Find sets of vectors which sum to a query vector.
 
@@ -100,6 +100,7 @@ def _find_anagram_vecs(tree, query_vec, min_vec=())
     than or equal to this vector.
 
     """
+    #import pdb; pdb.set_trace()
     if sum(query_vec) == 0:
         # The empty set is the only set of non-zero vectors that sum to 0.
         yield ()
@@ -107,7 +108,7 @@ def _find_anagram_vecs(tree, query_vec, min_vec=())
         for vec in tree.query_lte(query_vec, min_vec):
             for anagram in _find_anagram_vecs(tree,
                                               _vec_sub(query_vec, vec),
-                                              min_vec=vec)
+                                              min_vec=vec):
                 yield (vec,) + anagram
 
 def _expand_anagram_vecs(vec_dict, anagram_vecs):
@@ -134,4 +135,6 @@ def find_anagrams(query_word):
 if __name__ == "__main__":
     import sys
 
-    find_anagrams(sys.argv[1])
+    for anagram in find_anagrams(sys.argv[1]):
+        print anagram
+

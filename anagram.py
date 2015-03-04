@@ -91,9 +91,9 @@ class _VectorSet(object):
                                                      child_min_vec):
                         yield (val,) + child_vec
 
-def _make_vec(word):
+LETTERS = tuple(chr(ord('A') + i) for i in range(26))
+def _make_vec(word, letters=LETTERS):
     """Make a letter frequency vector for given word."""
-    letters = [chr(ord('A') + i) for i in range(26)]
     counter = collections.Counter(word)
     return tuple(counter[l] for l in letters)
 

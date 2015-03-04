@@ -89,7 +89,7 @@ def _vec_sub(v1, v2):
     assert len(v1) == len(v2)
     return tuple(a - b for a, b in zip(v1, v2))
 
-def _find_anagrams_vecs(tree, query_vec, min_vec=None)
+def _find_anagram_vecs(tree, query_vec, min_vec=())
     """
     Find sets of vectors which sum to a query vector.
 
@@ -100,14 +100,38 @@ def _find_anagrams_vecs(tree, query_vec, min_vec=None)
     than or equal to this vector.
 
     """
-    for vec in tree.query_lte(query_vec):
-        _vec_sub(query_vec, vec)
+    if sum(query_vec) == 0:
+        # The empty set is the only set of non-zero vectors that sum to 0.
+        yield ()
+    else:
+        for vec in tree.query_lte(query_vec, min_vec):
+            for anagram in _find_anagram_vecs(tree,
+                                              _vec_sub(query_vec, vec),
+                                              min_vec=vec)
+                yield (vec,) + anagram
+
+def _expand_anagram_vecs(vec_dict, anagram_vecs):
+    """
+    Expand a tuple of frequency vectors into tuples of words.
+
+    """
+    if anagram_vecs == ():
+        yield ()
+    else:
+        for anagram_words in _expand_anagram_vecs(vec_dict, anagram_vecs[1:]):
+            for word in vec_dict[anagram_vecs[0]]:
+                yield (word,) + anagram_words
 
 def find_anagrams(query_word):
     query_vec = _make_vec(query_word)
     tree, vec_dict = _make_tree()
 
+    for anagram_vecs in _find_anagram_vecs(tree, query_vec):
+        for anagram_words in _expand_anagram_vecs(vec_dict, anagram_vecs):
+            yield anagram_words
+
+
 if __name__ == "__main__":
     import sys
 
-    _find_anagrams(sys.argv[1])
+    find_anagrams(sys.argv[1])

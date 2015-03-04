@@ -1,5 +1,40 @@
 #!/usr/bin/env python
 
+"""
+
+Anagram solver. 
+
+Given an input string this module will generate a list of multi-word anagrams.
+
+Internally words are represented by their frequency vectors. A frequency vector
+is a 26-tuple, where each element indicates how many of the corresponding
+letter are in the word. For example, a 3 in the 3th element would indicate that
+the word contains 3 C's.
+
+The module uses a prefix tree (aka a trie, or radix tree) to hold the set of
+frequency vectors corresponding with english words, along with a dictionary
+mapping frequency vectors back to the list of words with that frequency vector.
+
+A prefix tree is used as it can be efficiently queried for vectors which are
+less than other vectors.
+
+Anagram finding proceeds as follows:
+    1) Words are canonicalized and added into the prefix tree as frequency
+       vectors. Simultaneously a dictionary from vectors to word lists is
+       constructed.
+    2) Sets of vectors which sum to the frequency vector of the input string
+       are saught. This is done via a simple depth-first search recursion,
+       querying the prefix tree at each step.
+    3) The vector sets found above are then expanded into words. For each
+       vector set the cartesian product of the corresponding word lists is
+       computed. The result is a list of multi-word anagrams.
+
+"""
+
+__all__ = (
+    'find_anagrams',
+)
+
 import collections
 import re
 
@@ -7,9 +42,9 @@ class _VectorSet(object):
     """
     A vector set represents a set of numeric tuples (vectors).
 
-    A tree-structure is used where each vector set has one child for each
-    possible first (head) value in the set. Each child is itself a vector set
-    representing the set of tails with the given head. The empty tuple is
+    The data structure is that of a prefix tree: Each node has one child for
+    each possible first (head) value in the set. Each child is itself a vector
+    set representing the set of tails with the given head. The empty tuple is
     present if the `present` attribute is set.
 
     """

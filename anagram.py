@@ -66,7 +66,7 @@ def _load_words(word_list, min_word_length):
     words = {w for w in words if len(w) >= min_word_length}
     return words
 
-def _make_tree(word_list, min_word_length):
+def _make_tree(word_list, min_word_length, query_word=None):
     """
     Make a set of frequency vectors and a vector-to-word mapping.
 
@@ -75,10 +75,17 @@ def _make_tree(word_list, min_word_length):
     The mapping maps each frequency vector to a list of canonicalized words
     which have the frequency vector.
 
+    Optionally take a query word. Only partial-anagrams of this word will be
+    added to the dictionary.
+
     """
+    if query_word:
+        query_vec = _make_vec(query_word)
     vec_dict = collections.defaultdict(list)
     for word in _load_words(word_list, min_word_length):
-        vec_dict[_make_vec(word)].append(word)
+        vec = _make_vec(word)
+        if query_word is None or _vec_lte(vec, query_vec):
+            vec_dict[_make_vec(word)].append(word)
     tree = _VectorSet()
     for vec in vec_dict.keys():
         tree._add_vec(vec)
@@ -88,6 +95,10 @@ def _vec_sub(v1, v2):
     """Subtract two vectors."""
     assert len(v1) == len(v2)
     return tuple(a - b for a, b in zip(v1, v2))
+
+def _vec_lte(v1, v2):
+    """Return true if a vector is universally less than or equal to another."""
+    return all(a <= b for a, b in zip(v1, v2))
 
 def _find_anagram_vecs(tree, query_vec, min_vec=()):
     """
@@ -125,29 +136,37 @@ def _expand_anagram_vecs(vec_dict, anagram_vecs):
 def find_anagrams(query_word,
                   word_list='/usr/share/dict/words',
                   min_word_length=1):
-    query_vec = _make_vec(_canonicalize_word(query_word))
+    query_word = _canonicalize_word(query_word)
+    query_vec = _make_vec(query_word)
     tree, vec_dict = _make_tree(word_list,
-                                min_word_length)
+                                min_word_length,
+                                query_word=query_word)
 
     for anagram_vecs in _find_anagram_vecs(tree, query_vec):
         for anagram_words in _expand_anagram_vecs(vec_dict, anagram_vecs):
             yield anagram_words
 
 if __name__ == "__main__":
-    import sys
-    import argparse
+    def main():
+        import sys
+        import argparse
 
-    parser = argparse.ArgumentParser(description='Find anagrams of a string.')
-    parser.add_argument('input', help='String to find anagrams of')
-    parser.add_argument('--min-word-length', default=1, type=int,
-                        help='Minimum word length')
-    parser.add_argument('--word-list', default='/usr/share/dict/words',
-                        type=str, help='Word list')
+        parser = argparse.ArgumentParser(
+                            description='Find anagrams of a string.')
+        parser.add_argument('input', help='String to find anagrams of')
+        parser.add_argument('--min-word-length', default=1, type=int,
+                            help='Minimum word length')
+        parser.add_argument('--word-list', default='/usr/share/dict/words',
+                            type=str, help='Word list')
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
-    for anagram in find_anagrams(args.input,
-                                 word_list=args.word_list,
-                                 min_word_length=args.min_word_length):
-        print anagram
+        for anagram in find_anagrams(args.input,
+                                     word_list=args.word_list,
+                                     min_word_length=args.min_word_length):
+            print anagram
+
+    import cProfile
+#    cProfile.run('main()')
+    main()
 

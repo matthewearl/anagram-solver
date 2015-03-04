@@ -1,4 +1,4 @@
-#!/usr/bin/env python import collections
+#!/usr/bin/env python
 
 import collections
 import re

@@ -23,7 +23,7 @@ class _Node(object):
         else:
             self.present = True
 
-    def query_lte(self, query_vec):
+    def query_lte(self, query_vec, min_vec=()):
         """
         Return vectors that are less than or equal to the query vector.
         
@@ -31,14 +31,23 @@ class _Node(object):
         element will be less than or equal to the corresponding element in the
         query vector.
 
+        If `min_vec` is passed, returned vectors will be lexicographically
+        greater than or equal to this value.
+
         """
         if query_vec == ():
-            if self.present:
+            if self.present and () >= min_vec:
                 yield ()
         else:
             for val, child in self.children.items():
-                if val <= query_vec[0]:
-                    for child_vec in child.query_lte(query_vec[1:]):
+                if (val <= query_vec[0] and
+                                          (min_vec == () or val >= min_vec[0]):
+                    if min_vec == () or val > min_vec[0]:
+                        child_min_vec = ()
+                    else:
+                        child_min_vec = min_vec[1:]
+                    for child_vec in child.query_lte(query_vec[1:],
+                                                     child_min_vec):
                         yield (val,) + child_vec
 
 def _make_vec(word):
@@ -58,6 +67,15 @@ def _load_words(word_list):
     return words
 
 def _make_tree(word_list="/usr/share/dict/words"):
+    """
+    Make a set of frequency vectors and a vector-to-word mapping.
+
+    The input is a list of english language words.
+
+    The mapping maps each frequency vector to a list of canonicalized words
+    which have the frequency vector.
+
+    """
     vec_dict = collections.defaultdict(list)
     for word in _load_words(word_list):
         vec_dict[_make_vec(word)].append(word)
@@ -66,8 +84,24 @@ def _make_tree(word_list="/usr/share/dict/words"):
         tree._add_vec(vec)
     return tree, vec_dict
 
-def _find_anagrams_vecs(tree, query_vec)
-    pass
+def _vec_sub(v1, v2):
+    """Subtract two vectors."""
+    assert len(v1) == len(v2)
+    return tuple(a - b for a, b in zip(v1, v2))
+
+def _find_anagrams_vecs(tree, query_vec, min_vec=None)
+    """
+    Find sets of vectors which sum to a query vector.
+
+    An iterator of tuples of vectors is returned. The tuples are given in
+    ascending order.
+
+    If `min_vec` is passed, returned vectors will be lexicographically greater
+    than or equal to this vector.
+
+    """
+    for vec in tree.query_lte(query_vec):
+        _vec_sub(query_vec, vec)
 
 def find_anagrams(query_word):
     query_vec = _make_vec(query_word)

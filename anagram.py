@@ -29,6 +29,12 @@ Anagram finding proceeds as follows:
        vector set the cartesian product of the corresponding word lists is
        computed. The result is a list of multi-word anagrams.
 
+Some additional notes:
+    - To avoid duplicate vector sets, step #2 generates vectors in
+      lexicographically ascending order.
+    - As an optimization, words which are not partial anagrams of the input
+      string are not added to the prefix tree.
+
 """
 
 __all__ = (

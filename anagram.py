@@ -60,13 +60,13 @@ _STRIP_RE = re.compile(r"[^A-Z]")
 def _canonicalize_word(word):
     return _STRIP_RE.sub('', word.upper()) 
 
-def _load_words(word_list):
+def _load_words(word_list, min_word_length):
     with open(word_list) as f:
         words = {_canonicalize_word(line) for line in f.readlines()}
-    words = {w for w in words if len(w) < 5}
+    words = {w for w in words if len(w) >= min_word_length}
     return words
 
-def _make_tree(word_list="/usr/share/dict/words"):
+def _make_tree(word_list, min_word_length):
     """
     Make a set of frequency vectors and a vector-to-word mapping.
 
@@ -77,7 +77,7 @@ def _make_tree(word_list="/usr/share/dict/words"):
 
     """
     vec_dict = collections.defaultdict(list)
-    for word in _load_words(word_list):
+    for word in _load_words(word_list, min_word_length):
         vec_dict[_make_vec(word)].append(word)
     tree = _VectorSet()
     for vec in vec_dict.keys():
@@ -100,7 +100,6 @@ def _find_anagram_vecs(tree, query_vec, min_vec=()):
     than or equal to this vector.
 
     """
-    #import pdb; pdb.set_trace()
     if sum(query_vec) == 0:
         # The empty set is the only set of non-zero vectors that sum to 0.
         yield ()
@@ -123,18 +122,32 @@ def _expand_anagram_vecs(vec_dict, anagram_vecs):
             for word in vec_dict[anagram_vecs[0]]:
                 yield (word,) + anagram_words
 
-def find_anagrams(query_word):
-    query_vec = _make_vec(query_word)
-    tree, vec_dict = _make_tree()
+def find_anagrams(query_word,
+                  word_list='/usr/share/dict/words',
+                  min_word_length=1):
+    query_vec = _make_vec(_canonicalize_word(query_word))
+    tree, vec_dict = _make_tree(word_list,
+                                min_word_length)
 
     for anagram_vecs in _find_anagram_vecs(tree, query_vec):
         for anagram_words in _expand_anagram_vecs(vec_dict, anagram_vecs):
             yield anagram_words
 
-
 if __name__ == "__main__":
     import sys
+    import argparse
 
-    for anagram in find_anagrams(sys.argv[1]):
+    parser = argparse.ArgumentParser(description='Find anagrams of a string.')
+    parser.add_argument('input', help='String to find anagrams of')
+    parser.add_argument('--min-word-length', default=1, type=int,
+                        help='Minimum word length')
+    parser.add_argument('--word-list', default='/usr/share/dict/words',
+                        type=str, help='Word list')
+
+    args = parser.parse_args()
+
+    for anagram in find_anagrams(args.input,
+                                 word_list=args.word_list,
+                                 min_word_length=args.min_word_length):
         print anagram
 
